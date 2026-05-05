@@ -1,5 +1,17 @@
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+MAX_CONSECUTIVE_ERRORS = 10
+BACKOFF_BASE_SECONDS = 5     # First retry waits 5 s; doubles each time, capped at 40 s.
+BACKOFF_MAX_DOUBLINGS = 3    # 5 * 2^3 = 40 s maximum wait.
+
+# ---------------------------------------------------------------------------
+# ENVIRONMENT CONFIGURATION
+# ---------------------------------------------------------------------------
+
 # Configuration (from main.py)
 LM_STUDIO_BASE_URL = "http://127.0.0.1:1234/v1"
 LM_STUDIO_API_KEY = "lm-studio"

@@ -343,3 +343,23 @@ TOOLS = [
     },
     ]
 
+
+# Maps tool name → callable so dispatch is O(1) and easy to extend.
+TOOL_REGISTRY: dict[str, Any] = {
+    "read_file_windowed":   tool_read_file_windowed,
+    "wrap_file_lines":      tool_wrap_file_lines,
+    "create_file":          tool_create_file,
+    "append_to_file":       tool_append_to_file,
+    "delete_file":          tool_delete_file,
+    "list_sandbox_files":   tool_list_sandbox_files,
+    "execute_shell_command": tool_execute_shell_command,
+}
+
+
+def dispatch_tool(tool_name: str, tool_args: dict) -> dict:
+    """Look up and call a tool by name. Returns an error dict for unknown tools."""
+    handler = TOOL_REGISTRY.get(tool_name)
+    if handler is None:
+        return {"ok": False, "error": f"Unknown tool: {tool_name}"}
+    return handler(**tool_args)
+

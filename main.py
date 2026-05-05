@@ -13,69 +13,13 @@ import sys
 import time
 from typing import Any, cast
 
-from env import LM_STUDIO_BASE_URL, MODEL_NAME, SANDBOX_DIR
+from env import LM_STUDIO_BASE_URL, MODEL_NAME, SANDBOX_DIR, MAX_CONSECUTIVE_ERRORS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_DOUBLINGS
+from prompts.system import SYSTEM_PROMPT
 from tools import (
     TOOLS,
-    tool_append_to_file,
-    tool_create_file,
-    tool_delete_file,
-    tool_execute_shell_command,
-    tool_list_sandbox_files,
-    tool_read_file_windowed,
-    tool_wrap_file_lines,
+    dispatch_tool
 )
 from utils import build_client, now_iso
-
-# ---------------------------------------------------------------------------
-# Prompts
-# ---------------------------------------------------------------------------
-
-SYSTEM_PROMPT = """You are an autonomous research and continuous improvement agent. Your task is:
-1. GENERATE A PLAN: Create a current PLAN.md to answer further users questions about the content of rag_source.txt.
-2. EXECUTE THE PLAN: Use your tools to execute the plan. Tools include reading files in sandbox/, creating/updating files, executing shell commands, and listing files.
-3. EVALUATE AND IMPROVE: After executing, evaluate the results. If the plan was successful, update PLAN.md with reflections and improvements for next time. If it failed, analyze
-what went wrong and generate an improved plan. Always log your reasoning and reflections in PLAN.md.
-4. REPEAT: No cycle limit. Regenerate, evaluate, replan, improve continuously.
-
-CRITICAL RULES:
-- File reading: ALWAYS specify start_line and end_line. If the file is large, read in small windows.
-- If a read requests more than 10k characters, you will receive an error and must split into smaller windows.
-- If raw rag_source has very long lines, or if read_file_windowed hits character limits repeatedly, call wrap_file_lines first (default 100 chars/line), then read the wrapped file.
-- Each read includes metadata: total lines, lines read, whether more content exists.
-- DO NOT ASSUME you have read the complete file in a single read.
-- No cycle limit: you can run indefinitely, regenerate plans, compact, etc.
-- All created files go to sandbox/."""
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-MAX_CONSECUTIVE_ERRORS = 10
-BACKOFF_BASE_SECONDS = 5     # First retry waits 5 s; doubles each time, capped at 40 s.
-BACKOFF_MAX_DOUBLINGS = 3    # 5 * 2^3 = 40 s maximum wait.
-
-# ---------------------------------------------------------------------------
-# Tool dispatch
-# ---------------------------------------------------------------------------
-
-# Maps tool name → callable so dispatch is O(1) and easy to extend.
-TOOL_REGISTRY: dict[str, Any] = {
-    "read_file_windowed":   tool_read_file_windowed,
-    "wrap_file_lines":      tool_wrap_file_lines,
-    "create_file":          tool_create_file,
-    "append_to_file":       tool_append_to_file,
-    "delete_file":          tool_delete_file,
-    "list_sandbox_files":   tool_list_sandbox_files,
-    "execute_shell_command": tool_execute_shell_command,
-}
-
-
-def dispatch_tool(tool_name: str, tool_args: dict) -> dict:
-    """Look up and call a tool by name. Returns an error dict for unknown tools."""
-    handler = TOOL_REGISTRY.get(tool_name)
-    if handler is None:
-        return {"ok": False, "error": f"Unknown tool: {tool_name}"}
-    return handler(**tool_args)
 
 # ---------------------------------------------------------------------------
 # LLM call helpers
@@ -90,7 +34,6 @@ def call_llm(client: Any, messages: list[dict]) -> Any:
         tool_choice="auto",
         temperature=0.2,
     )
-
 
 def serialize_assistant_message(assistant_message: Any) -> dict:
     """Convert the OpenAI response message to a plain dict for the message history."""
