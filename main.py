@@ -13,7 +13,7 @@ import sys
 import time
 from typing import Any, cast
 
-from env import LM_STUDIO_BASE_URL, MODEL_NAME, SANDBOX_DIR, MAX_CONSECUTIVE_ERRORS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_DOUBLINGS
+from env import LM_STUDIO_BASE_URL, MODEL_NAME, SANDBOX_DIR, MAX_CONSECUTIVE_ERRORS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_DOUBLINGS, LLM_MAX_TOKENS
 from prompts.system import SYSTEM_PROMPT
 from tools import (
     TOOLS,
@@ -33,6 +33,7 @@ def call_llm(client: Any, messages: list[dict]) -> Any:
         tools=cast(Any, TOOLS),
         tool_choice="auto",
         temperature=0.2,
+        max_tokens=LLM_MAX_TOKENS,
     )
 
 def serialize_assistant_message(assistant_message: Any) -> dict:
