@@ -12,6 +12,7 @@ The project currently uses local LM Studio with model google/gemma-4-e4b.
 - Reads and processes knowledge files under knowledge/
 - Exposes knowledge through MCP tools and resources
 - Generates document metadata such as:
+	- Summary
 	- FAQ pairs
 	- Magic filters (document section slices)
 - Keeps metadata in sidecar JSON files under knowledge/.knowledge_meta/
@@ -121,7 +122,10 @@ Useful shortcuts:
 - `make test-lmstudio`: Quick provider connectivity test (prints model + short reply).
 - `make run-mcp`: Start KnowledgeMCP server (stdio transport).
 - `make inspect-mcp`: Open MCP Inspector against the local server.
-- `make gen-once`: Generate FAQs + magic filters once.
+- `make gen-summaries`: Generate summaries once.
+	- Default: processes all files under `knowledge/`.
+	- Example single file: `make gen-summaries URI=knowledge://mydoc.txt`.
+- `make gen-once`: Generate summary + FAQs + magic filters once.
 	- Default: processes all files under `knowledge/`.
 	- Example single file: `make gen-once URI=knowledge://mydoc.txt N=5`.
 - `make gen-loop`: Re-run generation continuously.
@@ -153,6 +157,7 @@ Current tool set in knowledge_mcp/server.py:
 - read_knowledge_file
 - index_knowledge_file
 - semantic_search
+- trigger_summary_generation
 - trigger_magic_filter_generation
 - trigger_faq_generation
 

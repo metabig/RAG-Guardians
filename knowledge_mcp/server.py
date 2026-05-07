@@ -16,6 +16,7 @@ list_knowledge_files              List files with metadata (tokens, summary, mag
 read_knowledge_file               Read a file slice by URI + line range
 index_knowledge_file              (Re)index a file to refresh its metadata
 semantic_search                   BM25 lexical search across one or more files
+trigger_summary_generation        AI: generate a concise document summary
 trigger_magic_filter_generation   AI: auto-divide a document into labelled sections
 trigger_faq_generation            AI: generate Q&A pairs from a document
 
@@ -242,6 +243,46 @@ def semantic_search(
         chunk_size=chunk_size,
     )
     return json.dumps(results, indent=2, ensure_ascii=False)
+
+
+# ---------------------------------------------------------------------------
+# Tool: trigger_summary_generation  (2.0)
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def trigger_summary_generation(uri: str) -> str:
+    """
+    Use the LLM to generate a concise summary from a document.
+
+    Stores the summary in metadata.summary and returns it.
+
+    Parameters
+    ----------
+    uri : str
+        knowledge:// URI of the file to process.
+
+    Returns
+    -------
+    JSON object with:
+        ok       bool
+        summary  str
+        error    str  - present only on failure
+    """
+    rel = parse_uri(uri)
+    try:
+        summary = _ai.generate_summary(rel)
+    except Exception as exc:
+        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+
+    return json.dumps(
+        {
+            "ok": True,
+            "summary": summary,
+        },
+        indent=2,
+        ensure_ascii=False,
+    )
 
 
 # ---------------------------------------------------------------------------

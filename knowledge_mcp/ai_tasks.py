@@ -2,6 +2,7 @@
 AI-powered background tasks for KnowledgeMCP.
 
 Uses the local LM Studio endpoint to:
+    - generate_summary        : produce a concise document summary
   - generate_magic_filters : auto-divide a document into labelled sections
   - generate_faqs           : extract Q&A pairs from a document
 
@@ -18,8 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from env import KNOWLEDGE_DIR, MODEL_NAME, LLM_MAX_TOKENS, MAX_CONTEXT_TOKENS, CHARS_PER_TOKEN_APPROX
-from env import AI_TASK_MAX_DOC_CHARS, KNOWLEDGE_DIR, MODEL_NAME, LLM_MAX_TOKENS
+from env import AI_TASK_MAX_DOC_CHARS, KNOWLEDGE_DIR, LLM_MAX_TOKENS, MODEL_NAME
 from knowledge_mcp.metadata import FAQ, MagicFilter, get_meta, save_meta
 from utils import build_client
 
@@ -45,6 +45,26 @@ def _read_full(rel_path: str, char_limit: int | None = None) -> tuple[str, int]:
     text = abs_path.read_text(encoding="utf-8", errors="replace")
     total_lines = text.count("\n") + 1
     return text[:char_limit], total_lines
+
+
+def _extract_json_object(text: str) -> str | None:
+    """
+    Extract the first JSON object from an LLM response.
+    Handles responses that wrap JSON in markdown code fences.
+    """
+    text = re.sub(r"```(?:json)?", "", text).strip()
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    for i, ch in enumerate(text[start:], start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
 
 
 def _extract_json_array(text: str) -> str | None:
@@ -81,6 +101,67 @@ def _call_llm(system: str, user: str) -> str:
         max_tokens=LLM_MAX_TOKENS,
     )
     return response.choices[0].message.content or ""
+
+
+# ---------------------------------------------------------------------------
+# 2.0 - Summary generation
+# ---------------------------------------------------------------------------
+
+
+def generate_summary(rel_path: str, max_chars: int = 500) -> str:
+    """
+    Use the LLM to produce a concise summary for a document.
+
+    Saves the result to metadata.summary and returns the summary text.
+
+    Parameters
+    ----------
+    rel_path : str
+        Relative path from the knowledge root.
+    max_chars : int
+        Maximum summary length to persist (default 500 chars).
+    """
+    content, total_lines = _read_full(rel_path)
+
+    system = (
+        "You are a concise document summarization assistant. "
+        "Always respond with valid JSON only - no markdown, no extra text."
+    )
+    user = f"""Read the document below and write a concise, factual summary.
+
+Return a JSON object with exactly this key:
+  "summary" - one compact paragraph (3-6 sentences) describing the core points
+
+Rules:
+- Use only information present in the document.
+- Keep the summary neutral and clear.
+- Do not include lists or markdown formatting.
+
+Document ({total_lines} lines):
+{content}"""
+
+    raw = _call_llm(system, user)
+    json_str = _extract_json_object(raw)
+    if json_str is None:
+        raise RuntimeError(
+            f"LLM returned no JSON object for summary.\nRaw response: {raw[:500]}"
+        )
+
+    try:
+        item = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise RuntimeError(
+            f"Could not parse summary JSON: {exc}\nRaw: {raw[:500]}"
+        ) from exc
+
+    summary = str(item.get("summary", "")).strip()
+    if len(summary) > max_chars:
+        summary = summary[:max_chars].rstrip() + "..."
+
+    meta = get_meta(rel_path)
+    meta.summary = summary
+    save_meta(rel_path, meta)
+    return summary
 
 
 # ---------------------------------------------------------------------------
