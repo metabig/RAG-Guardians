@@ -6,14 +6,14 @@ from typing import Any
 
 from openai import OpenAI
 
-from env import CHARS_PER_TOKEN_APPROX, LM_STUDIO_API_KEY, LM_STUDIO_BASE_URL, MAX_CONTEXT_TOKENS, SANDBOX_DIR, TRACE_LOG_PATH
+from env import CHARS_PER_TOKEN_APPROX, MAX_CONTEXT_TOKENS, OPENAI_API_KEY, OPENAI_BASE_URL, SANDBOX_DIR, TRACE_LOG_PATH
 
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
 def build_client() -> OpenAI:
-    return OpenAI(base_url=LM_STUDIO_BASE_URL, api_key=LM_STUDIO_API_KEY)
+    return OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
 
 
 def resolve_sandbox_path(relative_path: str, must_exist: bool = False) -> Path:

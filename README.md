@@ -46,9 +46,7 @@ The project currently uses local LM Studio with model google/gemma-4-e4b.
 
 - macOS/Linux shell (Makefile uses zsh)
 - Python virtual environment at .venv/
-- LM Studio running locally
-- Model loaded in LM Studio:
-	- google/gemma-4-e4b
+- OpenAI-compatible endpoint credentials configured in .env
 
 ## Setup
 
@@ -65,7 +63,21 @@ source .venv/bin/activate
 pip install openai "mcp[cli]"
 ```
 
-3. Start LM Studio and load model google/gemma-4-e4b
+3. Configure provider settings
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your endpoint and API key.
+
+Example for NVIDIA Integrate:
+
+```env
+OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
+OPENAI_API_KEY=your-real-key
+MODEL_NAME=google/gemma-4-e4b
+```
 
 4. Quick connectivity check
 
@@ -104,43 +116,18 @@ python -m knowledge_mcp.server
 make help
 ```
 
-Available shortcuts:
+Useful shortcuts:
 
-- make test-lmstudio
-- make run-mcp
-- make gen-once
-- make gen-loop
-- make status
-
-### Generate once
-
-```bash
-make gen-once
-```
-
-Runs:
-
-- trigger_faq_generation
-- trigger_magic_filter_generation
-
-for URI knowledge://rag_source.txt.
-
-### Run continuous generation loop
-
-```bash
-make gen-loop
-```
-
-Runs generation every INTERVAL seconds (default 600).
-
-Stop with Ctrl+C.
-
-### Override runtime variables
-
-```bash
-make gen-once URI=knowledge://mydoc.txt N=5
-make gen-loop URI=knowledge://mydoc.txt N=8 INTERVAL=300
-```
+- `make test-lmstudio`: Quick provider connectivity test (prints model + short reply).
+- `make run-mcp`: Start KnowledgeMCP server (stdio transport).
+- `make inspect-mcp`: Open MCP Inspector against the local server.
+- `make gen-once`: Generate FAQs + magic filters once.
+	- Default: processes all files under `knowledge/`.
+	- Example single file: `make gen-once URI=knowledge://mydoc.txt N=5`.
+- `make gen-loop`: Re-run generation continuously.
+	- Default interval: 600 seconds.
+	- Example: `make gen-loop URI=knowledge://mydoc.txt N=8 INTERVAL=300`.
+- `make status`: Show per-file metadata counters (FAQs, filters, tokens) and totals.
 
 ## Metadata Output
 
@@ -175,6 +162,29 @@ Core behavior:
 - Windowed file reading with line ranges
 - Lexical search (BM25-inspired) via search.py
 - AI generation tasks via ai_tasks.py
+
+### list_knowledge_files Output (TOON)
+
+`list_knowledge_files` returns a TOON (Token-Oriented Object Notation) hybrid payload optimized for LLM retrieval planning.
+
+Top-level fields:
+
+- `format`: `TOON`
+- `version`: output schema version
+- `overview`: concise natural-language guidance
+- `notes`: practical usage hint
+- `total_files`: file count
+- `total_tokens`: aggregate estimated token count
+- `items`: per-file records
+
+Per-file item fields:
+
+- `id`: `uri`, `name`
+- `meta`: `file_type`, `created_at`
+- `size`: `bytes`, `tokens_estimate`, `chars_per_token_estimate`
+- `summary`: condensed summary (fallback when missing)
+- `spans`: condensed magic filter slices (`label`, `lines`, `hint`)
+- `faq_preview`: up to 3 FAQ snippets (`q`, `a`)
 
 ## Important Token/Context Notes
 
@@ -218,6 +228,7 @@ cd /Users/toni/rag_guardian
 python3 -m venv .venv
 source .venv/bin/activate
 pip install openai "mcp[cli]"
+cp .env.example .env
 make test-lmstudio
 make gen-once
 make status
