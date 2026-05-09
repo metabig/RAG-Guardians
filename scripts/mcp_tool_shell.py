@@ -11,17 +11,41 @@ import json
 import shlex
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
+
+try:
+    import readline  # noqa: F401
+except ImportError:
+    readline = None
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
 RUNNER = ROOT / "scripts" / "mcp_tool_runner.py"
 
 
+@dataclass
+class ShellState:
+    current_tool: str = "list_knowledge_files"
+    current_args: str = "{}"
+    last_tool: str = "list_knowledge_files"
+    last_args: str = "{}"
+
+    def remember_last(self, tool_name: str, args_json: str) -> None:
+        self.last_tool = tool_name
+        self.last_args = args_json
+
+
 def _run_runner(args: list[str]) -> int:
     cmd = [PYTHON, str(RUNNER), *args]
     proc = subprocess.run(cmd, cwd=ROOT)
+    if proc.returncode != 0:
+        print(f"Runner failed with exit code {proc.returncode}. Use 'help' or 'info <tool>' for guidance.")
     return proc.returncode
+
+
+def _run_tool(tool_name: str, args_json: str) -> int:
+    return _run_runner(["--tool", tool_name, "--args-json", args_json])
 
 
 def _print_help() -> None:
@@ -29,15 +53,18 @@ def _print_help() -> None:
     print("  help                     Show this help")
     print("  capabilities             Show tools/resources/prompts")
     print("  list                     List available tool names")
+    print("  info <tool>              Show signature + docs for one tool")
     print("  resources                List available resource URI patterns")
     print("  resource <uri>           Read one resource URI")
     print("  prompts                  List available prompt templates")
     print("  tool <name>              Select active tool")
     print("  args <json>              Set active args JSON object")
+    print("                           Example: args {\"query\":\"Bill Gates\",\"top_k\":3}")
     print("  show                     Show current tool + args")
     print("  run                      Execute current tool")
     print("  r                        Re-run last execution")
     print("  call <name> <json>       One-shot execution")
+    print("                           Tip: wrap JSON in single quotes if it contains spaces")
     print("  quit / exit              Leave shell")
 
 
@@ -54,11 +81,15 @@ def _validate_json_object(value: str) -> bool:
     return True
 
 
+def _raw_suffix(raw: str, *, maxsplit: int) -> str | None:
+    split = raw.split(maxsplit=maxsplit)
+    if len(split) <= maxsplit:
+        return None
+    return split[maxsplit].strip()
+
+
 def main() -> int:
-    current_tool = "list_knowledge_files"
-    current_args = "{}"
-    last_tool = current_tool
-    last_args = current_args
+    state = ShellState()
 
     print("KnowledgeMCP Interactive Shell")
     print("Type 'help' for commands. Type 'list' to see tools.")
@@ -96,6 +127,13 @@ def main() -> int:
             _run_runner(["--list"])
             continue
 
+        if cmd == "info":
+            if len(parts) < 2:
+                print("Usage: info <tool>")
+                continue
+            _run_runner(["--tool-info", parts[1]])
+            continue
+
         if cmd == "resources":
             _run_runner(["--list-resources"])
             continue
@@ -115,48 +153,48 @@ def main() -> int:
             if len(parts) < 2:
                 print("Usage: tool <name>")
                 continue
-            current_tool = parts[1]
-            print(f"Current tool: {current_tool}")
+            state.current_tool = parts[1]
+            print(f"Current tool: {state.current_tool}")
             continue
 
         if cmd == "args":
             if len(parts) < 2:
                 print("Usage: args <json>")
                 continue
-            value = raw[len(parts[0]) :].strip()
+            value = _raw_suffix(raw, maxsplit=1)
+            if value is None:
+                print("Usage: args <json>")
+                continue
             if not _validate_json_object(value):
                 continue
-            current_args = value
+            state.current_args = value
             print("Current args updated.")
             continue
 
         if cmd == "show":
-            print(f"tool: {current_tool}")
-            print(f"args: {current_args}")
+            print(f"tool: {state.current_tool}")
+            print(f"args: {state.current_args}")
             continue
 
         if cmd == "run":
-            last_tool = current_tool
-            last_args = current_args
-            _run_runner(["--tool", current_tool, "--args-json", current_args])
+            state.remember_last(state.current_tool, state.current_args)
+            _run_tool(state.current_tool, state.current_args)
             continue
 
         if cmd == "r":
-            _run_runner(["--tool", last_tool, "--args-json", last_args])
+            _run_tool(state.last_tool, state.last_args)
             continue
 
         if cmd == "call":
-            if len(parts) < 3:
+            one_shot_args = _raw_suffix(raw, maxsplit=2)
+            if len(parts) < 2 or one_shot_args is None:
                 print("Usage: call <name> <json>")
                 continue
-            tool_name = parts[1]
-            json_start = raw.find(tool_name) + len(tool_name)
-            one_shot_args = raw[json_start:].strip()
+            tool_name = parts[1].strip()
             if not _validate_json_object(one_shot_args):
                 continue
-            last_tool = tool_name
-            last_args = one_shot_args
-            _run_runner(["--tool", tool_name, "--args-json", one_shot_args])
+            state.remember_last(tool_name, one_shot_args)
+            _run_tool(tool_name, one_shot_args)
             continue
 
         print(f"Unknown command: {cmd}. Type 'help' for available commands.")

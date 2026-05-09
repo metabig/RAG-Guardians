@@ -6,7 +6,8 @@ from typing import Any
 
 from openai import OpenAI
 
-from env import CHARS_PER_TOKEN_APPROX, MAX_CONTEXT_TOKENS, OPENAI_API_KEY, OPENAI_BASE_URL, SANDBOX_DIR, TRACE_LOG_PATH
+from .env import CHARS_PER_TOKEN_APPROX, MAX_CONTEXT_TOKENS, OPENAI_API_KEY, OPENAI_BASE_URL, SANDBOX_DIR, TRACE_LOG_PATH
+
 
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
@@ -60,21 +61,21 @@ def append_trace(event: dict[str, Any]) -> None:
 class TokenBudgetManager:
     """Track and compact context to stay within 8000 token budget per turn."""
     max_tokens: int = MAX_CONTEXT_TOKENS
-    
+
     def estimate_tokens(self, text: str) -> int:
         """Rough estimate: 1 token ≈ 4 characters."""
         return len(text) // CHARS_PER_TOKEN_APPROX
-    
+
     def check_budget(self, messages: list[dict]) -> bool:
         """Check if current messages fit within budget."""
         total = sum(self.estimate_tokens(str(m)) for m in messages)
         return total <= self.max_tokens
-    
+
     def compact_history(self, messages: list[dict], max_items: int = 5) -> list[dict]:
         """Keep only recent messages + system message to fit budget."""
         system_msgs = [m for m in messages if m.get("role") == "system"]
         other_msgs = [m for m in messages if m.get("role") != "system"]
-        
+
         # Keep system + last N messages
         compacted = system_msgs + other_msgs[-max_items:]
         return compacted

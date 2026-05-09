@@ -6,7 +6,7 @@ URI ?= all
 N := 10
 INTERVAL := 600
 
-.PHONY: help check-venv test-lmstudio run-mcp inspect-mcp mcp-tools-list mcp-tool-run mcp-shell gen-summaries gen-once gen-loop status
+.PHONY: help check-venv test-lmstudio run-mcp inspect-mcp mcp-tools-list mcp-tool-info mcp-tool-run mcp-shell gen-summaries gen-once gen-loop status
 
 help:
 	@echo "RAG Guardian - shortcuts"
@@ -16,6 +16,7 @@ help:
 	@echo "make run-mcp-debug          # start KnowledgeMCP server with debug-friendly env"
 	@echo "make inspect-mcp            # launch MCP Inspector + stdio server"
 	@echo "make mcp-tools-list         # list MCP tool functions available to call"
+	@echo "make mcp-tool-info TOOL=... # show signature + docs for one MCP tool"
 	@echo "make mcp-tool-run TOOL=... ARGS='{"\"key\"":"\"value\""}'  # call tool and print JSON"
 	@echo "make mcp-shell              # interactive shell to run/rerun tools with hot reload"
 	@echo "make gen-summaries          # generate summaries once (all files by default)"
@@ -36,7 +37,7 @@ check-venv:
 	fi
 
 test-lmstudio: check-venv
-	@$(VENV_PYTHON) -c "import sys; sys.path.insert(0,'.'); from utils import build_client; from env import MODEL_NAME, LLM_MAX_TOKENS; c=build_client(); r=c.chat.completions.create(model=MODEL_NAME, messages=[{'role':'user','content':'Say OK in one word.'}], max_tokens=LLM_MAX_TOKENS); print('model:', r.model); print('reply:', (r.choices[0].message.content or '').strip())"
+	@PYTHONPATH=src $(VENV_PYTHON) -c "from rag_guardian.utils import build_client; from rag_guardian.env import MODEL_NAME, LLM_MAX_TOKENS; c=build_client(); r=c.chat.completions.create(model=MODEL_NAME, messages=[{'role':'user','content':'Say OK in one word.'}], max_tokens=LLM_MAX_TOKENS); print('model:', r.model); print('reply:', (r.choices[0].message.content or '').strip())"
 
 run-mcp: check-venv
 	@$(VENV_PYTHON) -m knowledge_mcp.server
@@ -54,6 +55,9 @@ mcp-tools-list: check-venv
 
 TOOL ?= list_knowledge_files
 ARGS ?= {}
+
+mcp-tool-info: check-venv
+	@$(VENV_PYTHON) scripts/mcp_tool_runner.py --tool-info '$(TOOL)'
 
 mcp-tool-run: check-venv
 	@$(VENV_PYTHON) scripts/mcp_tool_runner.py --tool '$(TOOL)' --args-json '$(ARGS)'
@@ -76,4 +80,4 @@ gen-loop: check-venv
 	done
 
 status: check-venv
-	@$(VENV_PYTHON) -c "import json, sys; sys.path.insert(0,'.'); from env import KNOWLEDGE_META_DIR; from knowledge_mcp.metadata import get_meta; from knowledge_mcp.reader import list_files; files=list_files(); total_summaries=0; total_faqs=0; total_filters=0; total_tokens=0; print('files:', len(files)); print('no knowledge files found') if not files else None; code='''for e in files:\n    rel=e[\"rel_path\"]\n    m=get_meta(rel)\n    total_summaries += 1 if (m.summary or \"\").strip() else 0\n    total_faqs += len(m.faqs)\n    total_filters += len(m.magic_filters)\n    total_tokens += m.token_count\n    sidecar = KNOWLEDGE_META_DIR / f\"{rel}.json\"\n    d = json.loads(sidecar.read_text(encoding=\"utf-8\")) if sidecar.exists() else {}\n    summary=(d.get(\"summary\", \"\") or \"\").strip()\n    print(\"---\", e[\"uri\"])\n    print(\"Summary generated:\", bool(summary))\n    print(\"Summary chars:\", len(summary))\n    print(\"FAQs:\", len(m.faqs))\n    print(\"Magic filters:\", len(m.magic_filters))\n    print(\"token_count:\", d.get(\"token_count\", m.token_count))'''; exec(code); print('TOTAL summaries:', total_summaries); print('TOTAL FAQs:', total_faqs); print('TOTAL Magic filters:', total_filters); print('TOTAL tokens:', total_tokens)"
+	@PYTHONPATH=src $(VENV_PYTHON) -c "import json; from rag_guardian.env import KNOWLEDGE_META_DIR; from knowledge_mcp.metadata import get_meta; from knowledge_mcp.reader import list_files; files=list_files(); total_summaries=0; total_faqs=0; total_filters=0; total_tokens=0; print('files:', len(files)); print('no knowledge files found') if not files else None; code='''for e in files:\n    rel=e[\"rel_path\"]\n    m=get_meta(rel)\n    total_summaries += 1 if (m.summary or \"\").strip() else 0\n    total_faqs += len(m.faqs)\n    total_filters += len(m.magic_filters)\n    total_tokens += m.token_count\n    sidecar = KNOWLEDGE_META_DIR / f\"{rel}.json\"\n    d = json.loads(sidecar.read_text(encoding=\"utf-8\")) if sidecar.exists() else {}\n    summary=(d.get(\"summary\", \"\") or \"\").strip()\n    print(\"---\", e[\"uri\"])\n    print(\"Summary generated:\", bool(summary))\n    print(\"Summary chars:\", len(summary))\n    print(\"FAQs:\", len(m.faqs))\n    print(\"Magic filters:\", len(m.magic_filters))\n    print(\"token_count:\", d.get(\"token_count\", m.token_count))'''; exec(code); print('TOTAL summaries:', total_summaries); print('TOTAL FAQs:', total_faqs); print('TOTAL Magic filters:', total_filters); print('TOTAL tokens:', total_tokens)"

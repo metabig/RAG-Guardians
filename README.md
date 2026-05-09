@@ -21,13 +21,18 @@ The project currently uses local LM Studio with model google/gemma-4-e4b.
 
 ```text
 .
-├── env.py
-├── main.py
-├── tools.py
-├── utils.py
+├── src/
+│   └── rag_guardian/
+│       ├── __init__.py
+│       ├── env.py
+│       ├── main.py
+│       ├── tools.py
+│       ├── utils.py
+│       └── prompts/
+│           ├── __init__.py
+│           └── system.py
 ├── Makefile
 ├── prompts/
-│   └── system.py
 ├── sandbox/
 ├── sandbox_backup/
 ├── knowledge/
@@ -94,10 +99,10 @@ Expected output includes model name and a short reply.
 
 ```bash
 source .venv/bin/activate
-python main.py
+PYTHONPATH=src python -m rag_guardian.main
 ```
 
-This runs an infinite loop where the model can call tools defined in tools.py.
+This runs an infinite loop where the model can call tools defined in src/rag_guardian/tools.py.
 
 ### 2) Run KnowledgeMCP server
 

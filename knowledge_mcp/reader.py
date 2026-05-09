@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from env import KNOWLEDGE_DIR, MAX_READ_CHARS
+from rag_guardian.env import KNOWLEDGE_DIR, MAX_READ_CHARS
 
 
 # ---------------------------------------------------------------------------

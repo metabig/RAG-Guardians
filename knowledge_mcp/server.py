@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from mcp.server.fastmcp import FastMCP
 
-from env import KNOWLEDGE_PAGE_SIZE
+from rag_guardian.env import KNOWLEDGE_PAGE_SIZE
 from knowledge_mcp.metadata import MetaRecord, get_meta, index_file, save_meta
 from knowledge_mcp.reader import list_files, parse_uri, read_windowed
 from knowledge_mcp import search as _search

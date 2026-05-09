@@ -13,17 +13,18 @@ import sys
 import time
 from typing import Any, cast
 
-from env import LM_STUDIO_BASE_URL, MODEL_NAME, SANDBOX_DIR, MAX_CONSECUTIVE_ERRORS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_DOUBLINGS, LLM_MAX_TOKENS
-from prompts.system import SYSTEM_PROMPT
-from tools import (
+from .env import LM_STUDIO_BASE_URL, MODEL_NAME, SANDBOX_DIR, MAX_CONSECUTIVE_ERRORS, BACKOFF_BASE_SECONDS, BACKOFF_MAX_DOUBLINGS, LLM_MAX_TOKENS
+from .prompts.system import SYSTEM_PROMPT
+from .tools import (
     TOOLS,
     dispatch_tool
 )
-from utils import build_client, now_iso
+from .utils import build_client, now_iso
 
 # ---------------------------------------------------------------------------
 # LLM call helpers
 # ---------------------------------------------------------------------------
+
 
 def call_llm(client: Any, messages: list[dict]) -> Any:
     """Call the LLM and return the response object."""
@@ -36,6 +37,7 @@ def call_llm(client: Any, messages: list[dict]) -> Any:
         max_tokens=LLM_MAX_TOKENS,
     )
 
+
 def serialize_assistant_message(assistant_message: Any) -> dict:
     """Convert the OpenAI response message to a plain dict for the message history."""
     tool_calls = [
@@ -43,7 +45,7 @@ def serialize_assistant_message(assistant_message: Any) -> dict:
             "id": tc.id,
             "type": "function",
             "function": {
-                "name": tc.function.name,        # type: ignore[union-attr]
+                "name": tc.function.name,  # type: ignore[union-attr]
                 "arguments": tc.function.arguments,  # type: ignore[union-attr]
             },
         }
@@ -70,6 +72,7 @@ def record_assistant_reply(messages: list[dict], response: Any) -> tuple[list[di
     print(f"[{now_iso()}] Response: {(assistant_message.content or 'no content')[:100]}...")
     return messages, assistant_message
 
+
 def execute_tool_calls(assistant_message: Any, messages: list[dict]) -> None:
     if assistant_message.tool_calls:
         for tool_call in assistant_message.tool_calls:
@@ -82,9 +85,12 @@ def execute_tool_calls(assistant_message: Any, messages: list[dict]) -> None:
 
             status = "✓" if result.get("ok") else "✗"
             print(f"    {status} {str(result)[:80]}...")
+
+
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
@@ -133,7 +139,7 @@ def main() -> None:
         print(f"[{now_iso()}] Iteration {iteration} completed.")
 
 
-if __name__ == "__main__":
+def run_cli() -> None:
     print("=" * 80)
     print("main.py — Autonomous Benchmark with Infinite Self-Improvement Loop")
     print("=" * 80)
@@ -152,3 +158,7 @@ if __name__ == "__main__":
     print("=" * 80)
     print()
     main()
+
+
+if __name__ == "__main__":
+    run_cli()

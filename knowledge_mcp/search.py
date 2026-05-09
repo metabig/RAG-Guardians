@@ -16,7 +16,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from env import KNOWLEDGE_DIR
+from rag_guardian.env import KNOWLEDGE_DIR
 from knowledge_mcp.reader import _resolve_safe, parse_uri
 
 

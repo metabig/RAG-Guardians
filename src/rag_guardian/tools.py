@@ -7,8 +7,8 @@ import subprocess
 import textwrap
 from typing import Any
 
-from env import MAX_READ_CHARS, SANDBOX_DIR
-from utils import append_trace, read_file_lines, resolve_sandbox_path, write_file_text
+from .env import MAX_READ_CHARS, SANDBOX_DIR
+from .utils import append_trace, read_file_lines, resolve_sandbox_path, write_file_text
 
 
 def wrap_file_lines(path_str: str, max_chars_per_line: int = 100, output_path: str | None = None) -> dict[str, Any]:
@@ -96,11 +96,11 @@ def read_file_windowed(path_str: str, start_line: int, end_line: int) -> dict[st
 
     actual_end = min(end_line, total_lines)
     selected_lines = all_lines[start_line - 1:actual_end]
-    
+
     # Join and check character limit
     content = "\n".join(selected_lines)
     char_count = len(content)
-    
+
     if char_count > MAX_READ_CHARS:
         # Estimate how many lines fit within the char limit
         lines_in_range = actual_end - start_line + 1
@@ -142,6 +142,7 @@ def tool_read_file_windowed(path: str, start_line: int, end_line: int) -> dict:
     append_trace({"tool": "read_file_windowed", "path": path, "start_line": start_line, "end_line": end_line, "result": result})
     return result
 
+
 def tool_wrap_file_lines(path: str, max_chars_per_line: int = 100, output_path: str | None = None) -> dict:
     result = wrap_file_lines(path, max_chars_per_line=max_chars_per_line, output_path=output_path)
     append_trace({
@@ -152,6 +153,7 @@ def tool_wrap_file_lines(path: str, max_chars_per_line: int = 100, output_path: 
         "result": result,
     })
     return result
+
 
 def tool_create_file(path: str, content: str, overwrite: bool = False) -> dict:
     try:
@@ -166,6 +168,7 @@ def tool_create_file(path: str, content: str, overwrite: bool = False) -> dict:
         result = {"ok": False, "error": str(e)}
         append_trace({"tool": "create_file", "path": path, "result": result})
         return result
+
 
 def tool_append_to_file(path: str, content: str) -> dict:
     try:
@@ -182,6 +185,7 @@ def tool_append_to_file(path: str, content: str) -> dict:
         append_trace({"tool": "append_to_file", "path": path, "result": result})
         return result
 
+
 def tool_delete_file(path: str) -> dict:
     try:
         resolved = resolve_sandbox_path(path, must_exist=True)
@@ -193,6 +197,7 @@ def tool_delete_file(path: str) -> dict:
         result = {"ok": False, "error": str(e)}
         append_trace({"tool": "delete_file", "path": path, "result": result})
         return result
+
 
 def tool_list_sandbox_files(max_files: int = 100) -> dict:
     try:
@@ -207,6 +212,7 @@ def tool_list_sandbox_files(max_files: int = 100) -> dict:
         return result
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
 
 def tool_execute_shell_command(command: str, timeout_seconds: int = 30) -> dict:
     try:
@@ -231,6 +237,7 @@ def tool_execute_shell_command(command: str, timeout_seconds: int = 30) -> dict:
         return {"ok": False, "error": f"Command timeout after {timeout_seconds}s"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
 
 TOOLS = [
     {
@@ -341,17 +348,17 @@ TOOLS = [
             }
         }
     },
-    ]
+]
 
 
 # Maps tool name → callable so dispatch is O(1) and easy to extend.
 TOOL_REGISTRY: dict[str, Any] = {
-    "read_file_windowed":   tool_read_file_windowed,
-    "wrap_file_lines":      tool_wrap_file_lines,
-    "create_file":          tool_create_file,
-    "append_to_file":       tool_append_to_file,
-    "delete_file":          tool_delete_file,
-    "list_sandbox_files":   tool_list_sandbox_files,
+    "read_file_windowed": tool_read_file_windowed,
+    "wrap_file_lines": tool_wrap_file_lines,
+    "create_file": tool_create_file,
+    "append_to_file": tool_append_to_file,
+    "delete_file": tool_delete_file,
+    "list_sandbox_files": tool_list_sandbox_files,
     "execute_shell_command": tool_execute_shell_command,
 }
 
@@ -362,4 +369,3 @@ def dispatch_tool(tool_name: str, tool_args: dict) -> dict:
     if handler is None:
         return {"ok": False, "error": f"Unknown tool: {tool_name}"}
     return handler(**tool_args)
-

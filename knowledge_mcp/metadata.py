@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from env import CHARS_PER_TOKEN_APPROX, KNOWLEDGE_DIR, KNOWLEDGE_META_DIR
+from rag_guardian.env import CHARS_PER_TOKEN_APPROX, KNOWLEDGE_DIR, KNOWLEDGE_META_DIR
 
 
 # ---------------------------------------------------------------------------

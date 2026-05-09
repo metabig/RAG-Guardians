@@ -19,9 +19,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from env import AI_TASK_MAX_DOC_CHARS, KNOWLEDGE_DIR, LLM_MAX_TOKENS, MODEL_NAME
+from rag_guardian.env import AI_TASK_MAX_DOC_CHARS, KNOWLEDGE_DIR, LLM_MAX_TOKENS, MODEL_NAME
 from knowledge_mcp.metadata import FAQ, MagicFilter, get_meta, save_meta
-from utils import build_client
+from rag_guardian.utils import build_client
 
 
 # ---------------------------------------------------------------------------
