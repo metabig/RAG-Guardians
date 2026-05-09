@@ -2,8 +2,8 @@
 File reading utilities for KnowledgeMCP.
 
 Handles URI parsing and windowed (paginated) file reads with char-cap enforcement.
-URI format:  knowledge://<relative_path>
-Example:     knowledge://docs/manual-empleado.md
+URI format:  file://<relative_path>
+Example:     file://docs/manual-empleado.md
 """
 
 from __future__ import annotations
@@ -20,17 +20,17 @@ from env import KNOWLEDGE_DIR, MAX_READ_CHARS
 
 def parse_uri(uri: str) -> str:
     """
-    Convert a knowledge:// URI to a relative path string.
+    Convert a file:// URI to a relative path string.
 
     Examples
     --------
-    >>> parse_uri("knowledge://rag_source.txt")
+    >>> parse_uri("file://rag_source.txt")
     'rag_source.txt'
-    >>> parse_uri("knowledge://docs/manual-empleado.md")
+    >>> parse_uri("file://docs/manual-empleado.md")
     'docs/manual-empleado.md'
     """
-    if uri.startswith("knowledge://"):
-        return uri[len("knowledge://"):]
+    if uri.startswith("file://"):
+        return uri[len("file://"):]
     # Accept bare relative paths as a convenience
     return uri
 
@@ -64,7 +64,7 @@ def read_windowed(rel_path: str, start_line: int = 1, end_line: int = 200) -> di
     Parameters
     ----------
     rel_path : str
-        Relative path from knowledge root, or a knowledge:// URI.
+        Relative path from knowledge root, or a file:// URI.
     start_line : int
         First line to read (1-indexed).
     end_line : int
@@ -166,7 +166,7 @@ def list_files(subpath: str = "") -> list[dict]:
         except ValueError:
             continue
         entries.append({
-            "uri": f"knowledge://{rel}",
+            "uri": f"file://{rel}",
             "rel_path": rel,
             "name": p.name,
             "size_bytes": p.stat().st_size,

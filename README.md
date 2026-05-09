@@ -124,13 +124,13 @@ Useful shortcuts:
 - `make inspect-mcp`: Open MCP Inspector against the local server.
 - `make gen-summaries`: Generate summaries once.
 	- Default: processes all files under `knowledge/`.
-	- Example single file: `make gen-summaries URI=knowledge://mydoc.txt`.
+	- Example single file: `make gen-summaries URI=file://mydoc.txt`.
 - `make gen-once`: Generate summary + FAQs + magic filters once.
 	- Default: processes all files under `knowledge/`.
-	- Example single file: `make gen-once URI=knowledge://mydoc.txt N=5`.
+	- Example single file: `make gen-once URI=file://mydoc.txt N=5`.
 - `make gen-loop`: Re-run generation continuously.
 	- Default interval: 600 seconds.
-	- Example: `make gen-loop URI=knowledge://mydoc.txt N=8 INTERVAL=300`.
+	- Example: `make gen-loop URI=file://mydoc.txt N=8 INTERVAL=300`.
 - `make status`: Show per-file metadata counters (FAQs, filters, tokens) and totals.
 
 ## Metadata Output
@@ -163,7 +163,7 @@ Current tool set in knowledge_mcp/server.py:
 
 Core behavior:
 
-- URI scheme: knowledge://<relative_path>
+- URI scheme: file://<relative_path>
 - Windowed file reading with line ranges
 - Lexical search (BM25-inspired) via search.py
 - AI generation tasks via ai_tasks.py

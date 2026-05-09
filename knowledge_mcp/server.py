@@ -22,8 +22,8 @@ trigger_faq_generation            AI: generate Q&A pairs from a document
 
 Resources
 ---------
-knowledge://            List all files (same as list_knowledge_files with no args)
-knowledge://{path}      Read first page of a specific file
+file://            List all files (same as list_knowledge_files with no args)
+file://{path}      Read first page of a specific file
 """
 
 from __future__ import annotations
@@ -71,7 +71,7 @@ def list_knowledge_files(path: str = "") -> str:
     Returns
     -------
     JSON array of compact objects with only:
-        uri          str   - knowledge:// URI of the file
+        uri          str   - file:// URI of the file
         total_files  int   - number of files in the listing
         total_tokens int   - aggregate estimated token count
         summary      str   - per-file summary (fallback when empty)
@@ -140,8 +140,8 @@ def read_knowledge_file(
     Parameters
     ----------
     uri : str
-        knowledge:// URI from list_knowledge_files, e.g.
-        knowledge://rag_source.txt  or  knowledge://docs/manual-empleado.md
+        file:// URI from list_knowledge_files, e.g.
+        file://rag_source.txt  or  file://docs/manual-empleado.md
     start_line : int
         First line to read (1-indexed, default 1).
     end_line : int
@@ -180,7 +180,7 @@ def index_knowledge_file(uri: str) -> str:
     Parameters
     ----------
     uri : str
-        knowledge:// URI of the file to index.
+        file:// URI of the file to index.
 
     Returns
     -------
@@ -218,7 +218,7 @@ def semantic_search(
     Parameters
     ----------
     query      : search query string
-    uris       : list of knowledge:// URIs to search in;
+    uris       : list of file:// URIs to search in;
                  omit or pass null to search all files in the knowledge base
     top_k      : maximum number of results to return (default 5)
     chunk_size : lines per scoring chunk (default 20)
@@ -226,7 +226,7 @@ def semantic_search(
     Returns
     -------
     JSON array of result objects sorted by relevance score, each with:
-        uri        str   – knowledge:// URI of the source file
+        uri        str   – file:// URI of the source file
         start_line int   – first line of the matching chunk
         end_line   int   – last line of the matching chunk
         score      float – relevance score (higher = more relevant)
@@ -260,7 +260,7 @@ def trigger_summary_generation(uri: str) -> str:
     Parameters
     ----------
     uri : str
-        knowledge:// URI of the file to process.
+        file:// URI of the file to process.
 
     Returns
     -------
@@ -305,7 +305,7 @@ def trigger_magic_filter_generation(uri: str) -> str:
     Parameters
     ----------
     uri : str
-        knowledge:// URI of the file to process.
+        file:// URI of the file to process.
 
     Returns
     -------
@@ -355,7 +355,7 @@ def trigger_faq_generation(uri: str, n_questions: int = 10) -> str:
 
     Parameters
     ----------
-    uri         : str – knowledge:// URI of the file to process
+    uri         : str – file:// URI of the file to process
     n_questions : int – number of Q&A pairs to generate (default 10)
 
     Returns
@@ -389,17 +389,17 @@ def trigger_faq_generation(uri: str, n_questions: int = 10) -> str:
 # ---------------------------------------------------------------------------
 
 
-@mcp.resource("knowledge://")
+@mcp.resource("file://")
 def resource_list_all() -> str:
     """List all knowledge files (resource view of list_knowledge_files)."""
     return list_knowledge_files()
 
 
-@mcp.resource("knowledge://{path}")
+@mcp.resource("file://{path}")
 def resource_read_file(path: str) -> str:
     """Read the first page of a knowledge file."""
     return read_knowledge_file(
-        uri=f"knowledge://{path}",
+        uri=f"file://{path}",
         start_line=1,
         end_line=KNOWLEDGE_PAGE_SIZE,
     )

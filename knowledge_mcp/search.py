@@ -67,14 +67,14 @@ def search(
     Parameters
     ----------
     query      : search query string
-    rel_paths  : relative paths or knowledge:// URIs to search in
+    rel_paths  : relative paths or file:// URIs to search in
     top_k      : maximum number of results to return
     chunk_size : lines per scoring chunk (default 20)
 
     Returns
     -------
     List of result dicts sorted by score descending:
-        uri        str   – knowledge:// URI
+        uri        str   – file:// URI
         rel_path   str
         start_line int
         end_line   int
@@ -122,7 +122,7 @@ def search(
             if score > 0:
                 results.append(
                     {
-                        "uri": f"knowledge://{rel}",
+                        "uri": f"file://{rel}",
                         "rel_path": rel,
                         "start_line": start,
                         "end_line": end,
